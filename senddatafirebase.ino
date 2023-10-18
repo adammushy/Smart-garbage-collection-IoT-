@@ -1,8 +1,16 @@
-#include <ArduinoJson.h>
-#include <ArduinoJson.hpp>
+#include "Arduino.h"
+#include "heltec.h"
+#include "WiFi.h"
+
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <TinyGPS++.h>
+
+
+
 #include <HardwareSerial.h>
 
-#include <Arduino.h>
+
 
 #if defined(ESP32)
   #include <WiFi.h>
@@ -35,7 +43,9 @@ FirebaseAuth auth;
 FirebaseConfig config;
 
 // Define the GPS
-double Longitude = 39.208470, Latitude =-6.722910 ;
+double Longitude = 39.209917, Latitude =-6.722554 ;
+
+// -6.722554, 39.209917
 
 unsigned long dataMillis = 0;
 const int trigPin = 12;
@@ -49,6 +59,7 @@ long duration;
 float distanceCm;
 String state;
 int value;
+String name = "Bin test";
 
 bool taskcomplete = false;
 //define sound speed in cm/uS
@@ -69,6 +80,7 @@ void setup() {
     }
     Serial.println();
     Serial.print("Connected with IP: ");
+    
     Serial.println(WiFi.localIP());
     Serial.println();
 
@@ -120,18 +132,18 @@ void loop() {
   distanceCm = duration * SOUND_SPEED/2;
   // Prints the distance in the Serial Monitor
 
-  if (distanceCm <=20){
+  if (distanceCm <=10){
     value=100;
-    state="Plain !";  
+    state="full";  
   }else if (distanceCm > 10 && distanceCm <=20){
-  state="PresPlain !"; 
+  state="almost full"; 
   value=75;  
   }else if(distanceCm > 20 && distanceCm <=30){
     value=50;
-    state="PresMoyen"; 
+    state="Medium"; 
   } else if(distanceCm > 30 && distanceCm <=40){
     value=25;
-    state="presvide"; 
+    state="Low"; 
   }else if(distanceCm > 40){
     value=0;
     state="empty";
@@ -166,44 +178,20 @@ void loop() {
             {
                 taskcomplete = true;
 
-    // // Define the desired size of the JSON document
-    //             const size_t capacity = JSON_OBJECT_SIZE(6) + 120; // Adjust the capacity according to your data
-
-    //     // Create a DynamicJsonDocument
-    //             DynamicJsonDocument doc(capacity);
-
-    //             // Set the fields directly in the JSON document
-    //             doc["Latitude"]["doubleValue"] = Latitude;
-    //             doc["Longitude"]["doubleValue"] = Longitude;
-    //             doc["state"]["stringValue"] = state;
-    //             doc["percentage"]["integerValue"] = value;
-    //             doc["name"]["stringValue"] = "bin test";
-
-    //             // Serialize the JSON document to a string
-    //             String payload;
-    //             serializeJson(doc, payload);
-
-    //             Serial.print("Create a serialized document... ");
-
-    //             content.clear();
-    //             content.set("Latitude", Latitude);
-    //             content.set("Longitude", Longitude);
-    //             content.set("state", state);
-    //             content.set("percentage", value);
-    //             content.set("name", "bin test");
+  
                 content.clear();
 
                 content.set("fields/Latitude/doubleValue", Latitude);
                 content.set("fields/Longitude/doubleValue", Longitude);
                 content.set("fields/state/stringValue", state);
                 content.set("fields/percentage/integerValue", value);
-                content.set("fields/name/stringValue", "bin test");
+                content.set("fields/name/stringValue", name);
 
                 Serial.print("Create a document... ");
 
                 Serial.print("Create a document... ");
 
-                if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, documentPath.c_str(), content.raw()))
+                if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, documentPath.c_str(), content.raw()  ))
                     Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
                 else
                     Serial.println(fbdo.errorReason());
@@ -222,7 +210,7 @@ void loop() {
             * this field name does not exist in the document (content), that field will be deleted from remote document
             */
 
-            if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, documentPath.c_str(), content.raw(), "state,Latitude,Longitude,percentage" /* updateMask */))
+            if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "" /* databaseId can be (default) or empty */, documentPath.c_str(), content.raw(), "name,state,Latitude,Longitude,percentage" /* updateMask */))
                 Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
             else
                 Serial.println(fbdo.errorReason());
